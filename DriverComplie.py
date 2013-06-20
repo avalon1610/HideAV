@@ -38,7 +38,7 @@ platform = 'x86'
 target_os = 'WIN7'
 
 # build path,place them in order
-build_path = ['E:\\Projects\\HideAV']
+build_path = ['E:\\Projects\\HideAV\\sys']
 # ########################################################
 
 set_env = ['%sbin\\setenv.bat' % winddk,winddk,environment,platform,target_os,'no_oacr']

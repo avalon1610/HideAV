@@ -1,7 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hideav", "hideav\hideav.vcxproj", "{9AEF9E23-88A7-49FC-946F-1102805E9010}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sys", "sys\sys.vcxproj", "{C5720D11-114F-40E0-8243-CCE0C636B42F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hideav", "hideav\hideav.vcxproj", "{5A2B06D3-BF0C-4F5C-AF2C-32AF4F1EAE08}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,10 +11,16 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9AEF9E23-88A7-49FC-946F-1102805E9010}.Debug|Win32.ActiveCfg = Debug|Win32
-		{9AEF9E23-88A7-49FC-946F-1102805E9010}.Debug|Win32.Build.0 = Debug|Win32
-		{9AEF9E23-88A7-49FC-946F-1102805E9010}.Release|Win32.ActiveCfg = Release|Win32
-		{9AEF9E23-88A7-49FC-946F-1102805E9010}.Release|Win32.Build.0 = Release|Win32
+		{C5720D11-114F-40E0-8243-CCE0C636B42F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C5720D11-114F-40E0-8243-CCE0C636B42F}.Release|Win32.ActiveCfg = Release|Win32
+		{C5720D11-114F-40E0-8243-CCE0C636B42F}.Release|Win32.Build.0 = Release|Win32
+		{C5720D11-114F-40E0-8243-CCE0C636B42F}.Release|Win32.Deploy.0 = Release|Win32
+		{5A2B06D3-BF0C-4F5C-AF2C-32AF4F1EAE08}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5A2B06D3-BF0C-4F5C-AF2C-32AF4F1EAE08}.Debug|Win32.Build.0 = Debug|Win32
+		{5A2B06D3-BF0C-4F5C-AF2C-32AF4F1EAE08}.Debug|Win32.Deploy.0 = Debug|Win32
+		{5A2B06D3-BF0C-4F5C-AF2C-32AF4F1EAE08}.Release|Win32.ActiveCfg = Release|Win32
+		{5A2B06D3-BF0C-4F5C-AF2C-32AF4F1EAE08}.Release|Win32.Build.0 = Release|Win32
+		{5A2B06D3-BF0C-4F5C-AF2C-32AF4F1EAE08}.Release|Win32.Deploy.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

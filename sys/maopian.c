@@ -1,12 +1,26 @@
 #include <fltKernel.h>
 #include <dontuse.h>
 #include <suppress.h>
+#include "../inc/maopian.h"
 
 #pragma prefast(disable:__WARNING_ENCODE_MEMBER_FUNCTION_POINTER, "Not valid for kernel mode drivers")
 
 
-PFLT_FILTER filterHandle;
+//PFLT_FILTER filterHandle;
 PWCHAR prefixName = L"2";//要隐藏的文件夹名字
+
+typedef struct _HAV_DATA
+{
+	PDRIVER_OBJECT DriverObject;
+
+	// The filter handle that results from a call to FltRegisterFilter
+	PFLT_FILTER Filter;
+	PFLT_PORT ServerPort;
+	PEPROCESS UserProcess;
+	PFLT_PORT ClientPort;
+} HAV_DATA,*PHAV_DATA;
+
+HAV_DATA HavData;
 
 /*************************************************************************
     Prototypes
@@ -54,23 +68,160 @@ CONST FLT_REGISTRATION FilterRegistration =
     NULL                                //  NormalizeNameComponent
 };
 
+NTSTATUS HavConnect(__in PFLT_PORT ClientPort,
+					__in_opt PVOID ServerPortCookie,
+					__in_bcount_opt(SizeOfContext) PVOID ConnectionContext,
+					__in ULONG SizeOfContext,
+					__deref_out_opt PVOID *ConnectionCookie)
+{
+	PAGED_CODE();
+
+	UNREFERENCED_PARAMETER(ServerPortCookie);
+	UNREFERENCED_PARAMETER(ConnectionContext);
+	UNREFERENCED_PARAMETER(SizeOfContext);
+	UNREFERENCED_PARAMETER(ConnectionCookie);
+
+	ASSERT(HavData.ClientPort == NULL);
+	ASSERT(HavData.UserProcess == NULL);
+
+	// set the user process and port
+	HavData.UserProcess = PsGetCurrentProcess();
+	HavData.ClientPort = ClientPort;
+
+	KdPrint(("!!!maopian.sys --- connected,port = 0x%p\n",ClientPort));
+	return STATUS_SUCCESS;
+}
+
+VOID HavDisconnect(__in_opt PVOID ConnectionCookie)
+{
+	UNREFERENCED_PARAMETER(ConnectionCookie);
+	PAGED_CODE();
+	KdPrint(("!!! maopian.sys --- disconnected,port = 0x%p\n",HavData.ClientPort));
+
+	FltCloseClientPort(HavData.Filter,&HavData.ClientPort);
+
+	HavData.UserProcess = NULL;
+}
+
+NTSTATUS HavMessage(__in PVOID ConnectionCookie,
+					__in_bcount_opt(InputBufferSize) PVOID InputBuffer,
+					__in ULONG InputBufferSize,
+					__out_bcount_part_opt(OutputBufferSize,*ReturnOutputBufferLength) PVOID OutputBuffer,
+					__in ULONG OutputBufferSize,
+					__out PULONG ReturnOutputBufferLength)
+{
+	HAV_COMMAND command;
+	NTSTATUS status;
+	PAGED_CODE();
+
+	UNREFERENCED_PARAMETER(ConnectionCookie);
+	if ((InputBuffer != NULL) && (InputBufferSize >= (FIELD_OFFSET(COMMAND_MESSAGE,Command)+sizeof(HAV_COMMAND))))
+	{
+		try
+		{
+			// Probe and capture input message: the message is raw user mode
+			// buffer, so need to protect with exception handler
+			command = ((PCOMMAND_MESSAGE)InputBuffer)->Command;
+		}
+		except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			return GetExceptionCode();
+		}
+		switch (command)
+		{
+		case SetDir:
+			break;
+		case GetVersion:
+			if ((OutputBufferSize < sizeof(HAVVER) || OutputBuffer == NULL))
+			{
+				status = STATUS_INVALID_PARAMETER;
+				break;
+			}	
+
+			// Validate Buffer alignment. If a minifilter cares about
+			// the alignment value of the buffer pointer they must do
+			// this check themselves. Note that a try/except will
+			// not capture alignment faults.
+			if (!IS_ALIGNED(OutputBuffer,sizeof(ULONG)))
+			{
+				status = STATUS_DATATYPE_MISALIGNMENT;
+				break;
+			}
+
+			// Protect access to raw user-mode output buffer with
+			// an exception handler
+			try 
+			{
+				((PHAVVER)OutputBuffer)->Major = MAJ_VERSION;
+				((PHAVVER)OutputBuffer)->Minor = MIN_VERSION;
+			}
+			except(EXCEPTION_EXECUTE_HANDLER)
+			{
+				return GetExceptionCode();
+			}
+
+			*ReturnOutputBufferLength = sizeof(HAVVER);
+			status = STATUS_SUCCESS;
+			break;
+		default:
+			status = STATUS_INVALID_PARAMETER;
+			break;
+		}
+	}
+	else
+		status = STATUS_INVALID_PARAMETER;
+
+	return status;
+}
+
 NTSTATUS DriverEntry ( __in PDRIVER_OBJECT DriverObject, __in PUNICODE_STRING RegistryPath )
 {
     NTSTATUS status;
+	UNICODE_STRING uniString;
+	PSECURITY_DESCRIPTOR sd;
+	OBJECT_ATTRIBUTES oa;
 
     UNREFERENCED_PARAMETER( RegistryPath );
 
-    status = FltRegisterFilter( DriverObject, &FilterRegistration, &filterHandle );
+    status = FltRegisterFilter( DriverObject, &FilterRegistration, &HavData.Filter );
+	if (!NT_SUCCESS(status))
+		return status;
 
-    if (NT_SUCCESS( status ))
-    {
-        status = FltStartFiltering( filterHandle );
+	RtlInitUnicodeString(&uniString,HAV_PORT_NAME);
+	status = FltBuildDefaultSecurityDescriptor(&sd,FLT_PORT_ALL_ACCESS);
+	if (NT_SUCCESS(status))
+	{
+		InitializeObjectAttributes(&oa,
+								   &uniString,
+								   OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+								   NULL,
+								   sd);
+		status = FltCreateCommunicationPort(HavData.Filter,
+											&HavData.ServerPort,
+											&oa,
+											NULL,
+											HavConnect,
+											HavDisconnect,
+											HavMessage,1);
 
-        if (!NT_SUCCESS( status ))
-        {
-            FltUnregisterFilter( filterHandle );
-        }
-    }
+		// Free the security descriptor in all cases. It is not needed once
+		// the call to FltCreateCommunicationPort() is made.
+		FltFreeSecurityDescriptor(sd);
+		if (NT_SUCCESS( status ))
+		{
+			status = FltStartFiltering( HavData.Filter );
+
+			if (NT_SUCCESS( status ))
+				return STATUS_SUCCESS;
+
+			FltCloseCommunicationPort(HavData.ServerPort);	
+		}
+
+		FltUnregisterFilter(HavData.Filter);
+		return status;
+	}
+
+
 
     return status;
 }
@@ -80,7 +231,9 @@ NTSTATUS PtUnload ( __in FLT_FILTER_UNLOAD_FLAGS Flags )
     UNREFERENCED_PARAMETER( Flags );
     PAGED_CODE();
 
-    FltUnregisterFilter( filterHandle );
+	FltCloseCommunicationPort(HavData.ServerPort);
+
+    FltUnregisterFilter( HavData.Filter );
 
     return STATUS_SUCCESS;
 }
