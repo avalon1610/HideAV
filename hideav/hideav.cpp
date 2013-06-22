@@ -1,6 +1,5 @@
 // hideav.cpp : main source file for hideav.exe
 //
-
 #include "stdafx.h"
 
 #include "resource.h"
