@@ -53,14 +53,18 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 
 LRESULT CMainDlg::OnBrowser(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-	/*CAboutDlg dlg;
-	dlg.DoModal();*/
 	CString sSelectedDir;
 	CFolderDialog fldDlg(NULL,_T("Select Dir"),BIF_RETURNONLYFSDIRS|BIF_NEWDIALOGSTYLE);
 	if (IDOK == fldDlg.DoModal())
 		sSelectedDir = fldDlg.m_szFolderPath;
-	CEdit Dir;
-	g
+	CEdit Dir =	GetDlgItem(IDC_DIR);
+	Dir.SetWindowText(sSelectedDir);
+	return 0;
+}
+
+LRESULT CMainDlg::OnClose(UINT , WPARAM , LPARAM , BOOL& )
+{
+	CloseDialog(0);
 	return 0;
 }
 
@@ -81,4 +85,25 @@ void CMainDlg::CloseDialog(int nVal)
 {
 	DestroyWindow();
 	::PostQuitMessage(nVal);
+}
+
+LRESULT CMainDlg::OnDropFiles(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	HDROP hDropInfo = (HDROP)wParam;
+	UINT cFile = 0,i = 0;
+	TCHAR szFileName[MAX_PATH] = {0};
+	cFile = DragQueryFile(hDropInfo,0xFFFFFFFF,NULL,MAX_PATH);
+	DWORD fileAttrib;
+	for (i=0;i<cFile;++i)
+	{
+		fileAttrib = 0;
+		DragQueryFile(hDropInfo,i,szFileName,MAX_PATH);
+		if (0x10 == (fileAttrib & FILE_ATTRIBUTE_DIRECTORY))
+		{
+			CEdit Dir =	GetDlgItem(IDC_DIR);
+			Dir.SetWindowText(szFileName);
+			break;
+		}
+	}
+	return 0;
 }
