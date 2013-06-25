@@ -36,7 +36,8 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	pLoop->AddIdleHandler(this);
 
 	UIAddChildWindowContainer(m_hWnd);
-
+	
+	m_ListBox.Attach(GetDlgItem(IDC_LIST));
 	return TRUE;
 }
 
@@ -51,17 +52,6 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 	return 0;
 }
 
-LRESULT CMainDlg::OnBrowser(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
-{
-	CString sSelectedDir;
-	CFolderDialog fldDlg(NULL,_T("Select Dir"),BIF_RETURNONLYFSDIRS|BIF_NEWDIALOGSTYLE);
-	if (IDOK == fldDlg.DoModal())
-		sSelectedDir = fldDlg.m_szFolderPath;
-	CEdit Dir =	GetDlgItem(IDC_DIR);
-	Dir.SetWindowText(sSelectedDir);
-	return 0;
-}
-
 LRESULT CMainDlg::OnClose(UINT , WPARAM , LPARAM , BOOL& )
 {
 	CloseDialog(0);
@@ -71,7 +61,7 @@ LRESULT CMainDlg::OnClose(UINT , WPARAM , LPARAM , BOOL& )
 LRESULT CMainDlg::OnHide(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	// TODO: Add validation code 
-	CloseDialog(wID);
+	
 	return 0;
 }
 
@@ -87,23 +77,27 @@ void CMainDlg::CloseDialog(int nVal)
 	::PostQuitMessage(nVal);
 }
 
-LRESULT CMainDlg::OnDropFiles(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+BOOL CMainDlg::HandleDroppedFile( LPCSTR szBuff )
 {
-	HDROP hDropInfo = (HDROP)wParam;
-	UINT cFile = 0,i = 0;
-	TCHAR szFileName[MAX_PATH] = {0};
-	cFile = DragQueryFile(hDropInfo,0xFFFFFFFF,NULL,MAX_PATH);
-	DWORD fileAttrib;
-	for (i=0;i<cFile;++i)
-	{
-		fileAttrib = 0;
-		DragQueryFile(hDropInfo,i,szFileName,MAX_PATH);
-		if (0x10 == (fileAttrib & FILE_ATTRIBUTE_DIRECTORY))
-		{
-			CEdit Dir =	GetDlgItem(IDC_DIR);
-			Dir.SetWindowText(szFileName);
-			break;
-		}
-	}
-	return 0;
+	ATLTRACE("%s\n",szBuff);
+	m_ListBox.AddString(szBuff);
+	// Return TRUE unless you're done handling files (e.g., if you want 
+	// to handle only the first relevant file, 
+	// and you have already found it).
+	return TRUE;
+}
+
+void CMainDlg::EndDropFiles( void )
+{
+	// Sometimes, if your file handling is not trivial,  
+	// you might want to add all
+	// file names to some container (std::list<CString> comes to mind), 
+	// and do the 
+	// handling afterwards, in a worker thread. 
+	// If so, use this function to create your worker thread.
+	CWindow wnd;
+	wnd.Attach(GetDlgItem(IDC_COUNT));
+	CHAR buff[30] = {0};
+	sprintf_s(buff,"%d",m_ListBox.GetCount());
+	wnd.SetWindowText(buff);
 }

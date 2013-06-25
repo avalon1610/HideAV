@@ -4,8 +4,10 @@
 
 #pragma once
 
+#include "DropFileHandler.h"
+
 class CMainDlg : public CDialogImpl<CMainDlg>, public CUpdateUI<CMainDlg>,
-		public CMessageFilter, public CIdleHandler
+	public CMessageFilter, public CIdleHandler, public CDropFilesHandler<CMainDlg>
 {
 public:
 	enum { IDD = IDD_MAINDLG };
@@ -20,17 +22,16 @@ public:
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_CLOSE,OnClose);
-		COMMAND_ID_HANDLER(IDC_BROWSER, OnBrowser)
 		COMMAND_ID_HANDLER(IDC_HIDE, OnHide)
 		COMMAND_ID_HANDLER(IDC_RESTORE, OnRestore)
-		CHAIN_MSG_MAP_ALT_MEMBER(CEdit, 1)
+		// Send WM_DROPFILES to its handler...
+		CHAIN_MSG_MAP(CDropFilesHandler<CMainDlg>)
 	END_MSG_MAP()
 
-	BEGIN_MSG_MAP(CEdit)
-	ALT_MSG_MAP(1)
-		MESSAGE_HANDLER(WM_DROPFILES, OnDropFiles)
-	END_MSG_MAP()
-
+	CListBox m_ListBox;
+	BOOL IsReadyForDrop(void) { m_ListBox.ResetContent(); return TRUE; }
+	BOOL HandleDroppedFile(LPCSTR szBuff);
+	void EndDropFiles(void);
 // Handler prototypes (uncomment arguments if needed):
 //	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 //	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
@@ -39,10 +40,8 @@ public:
 	LRESULT OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnBrowser(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnHide(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnRestore(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnDropFiles(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-
+	
 	void CloseDialog(int nVal);
 };

@@ -1,9 +1,24 @@
 #include "stdafx.h"
-#include "hideav.h"
-#include <fltUser.h>
+#include "..\Bin\KernelModule.h"
+#include <Fltuser.h>
 #include "..\inc\maopian.h"
+#include "worker.h"
 
 #pragma comment(lib,"fltlib")
+
+#define SYS_NAME "maopian"
+
+void LoadAndRun()
+{
+	char filePath[MAX_PATH] = {0};
+	GetWindowsDirectoryA(filePath,sizeof(filePath));
+	strcat_s(filePath,"\\");
+	strcat_s(filePath,SYS_NAME);
+	strcat_s(filePath,".sys");
+
+	//ExtractSysFile(filePath,KernelModule,sizeof(KernelModule));
+}
+
 
 #pragma warning(push)
 #pragma warning(disable:4996)
@@ -24,17 +39,17 @@ bool Init()
 	HAV_CONTEXT context;
 	HRESULT hResult = S_OK;
 	context.ShutDown = NULL;
-	
+
 	hResult = FilterConnectCommunicationPort(HAV_PORT_NAME,0,NULL,0,NULL,&port);
 	if (IS_ERROR(hResult))
 	{
-		ShowERR(L"Could not connect to filter: 0x%08x\n",hResult);
+		ShowERR("Could not connect to filter: 0x%08x\n",hResult);
 		return false;
 	}
 
 	context.Port = port;
-	context.ShutDown = CreateSemaphore(NULL,0,1,L"Hav shut down");
+	context.ShutDown = CreateSemaphore(NULL,0,1,"Hav shut down");
 	context.CleaningUp = FALSE;
-	
+
 	return true;
 }

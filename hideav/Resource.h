@@ -6,11 +6,12 @@
 #define IDR_MAINFRAME                   128
 #define IDD_MAINDLG                     129
 #define IDC_EDIT1                       1000
-#define IDC_DIR                         1000
 #define IDC_BUTTON1                     1001
 #define IDC_RESTORE                     1001
 #define IDC_HIDE                        1002
 #define IDC_BROWSER                     1003
+#define IDC_LIST                        1004
+#define IDC_COUNT                       1005
 
 // Next default values for new objects
 // 
@@ -18,7 +19,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        201
 #define _APS_NEXT_COMMAND_VALUE         32775
-#define _APS_NEXT_CONTROL_VALUE         1004
+#define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
