@@ -131,7 +131,7 @@ NTSTATUS HavMessage(__in PVOID ConnectionCookie,
 		{
 		case SetDir:
 			break;
-		case GetVersion:
+		case GetVer:
 			if ((OutputBufferSize < sizeof(HAVVER) || OutputBuffer == NULL))
 			{
 				status = STATUS_INVALID_PARAMETER;
