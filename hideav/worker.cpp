@@ -108,6 +108,79 @@ bool LoadNTDriver(char *DriverName,char *DriverPath)
 		}
 	}
 
+	char szTempStr[MAX_PATH] = {0};
+	strcpy_s(szTempStr,"SYSTEM\\CurrentControlSet\\Services\\");
+	strcat_s(szTempStr,DriverName);
+	strcat_s(szTempStr,"\\Instances");
+
+	HKEY hKey;
+	DWORD dwData;
+	if (RegCreateKeyEx(HKEY_LOCAL_MACHINE,
+					   szTempStr,
+					   0,
+					   "",
+					   TRUE,
+					   KEY_ALL_ACCESS,
+					   NULL,
+					   &hKey,
+					   (LPDWORD)&dwData) != ERROR_SUCCESS)
+	{
+		ShowERR("RegCreateKeyEx 1 failed:%d",GetLastError());
+		return FALSE;
+	}
+
+	strcpy_s(szTempStr,DriverName);
+	strcat_s(szTempStr," Instance");
+	if (RegSetValueEx(hKey,
+					  "DefaultInstance",
+					  0,
+					  REG_SZ,
+					  (CONST BYTE*)szTempStr,
+					  (DWORD)strlen(szTempStr)) != ERROR_SUCCESS)
+	{
+		ShowERR("RegSetValueEx 1 failed:%d",GetLastError());
+		return FALSE;
+	}
+	RegFlushKey(hKey);
+	RegCloseKey(hKey);
+
+	strcpy_s(szTempStr,"SYSTEM\\CurrentControlSet\\Services\\");
+	strcat_s(szTempStr,DriverName);
+	strcat_s(szTempStr,"\\Instances\\");
+	strcat_s(szTempStr,DriverName);
+	strcat_s(szTempStr," Instance");
+	if (RegCreateKeyEx(HKEY_LOCAL_MACHINE,
+					   szTempStr,
+					   0,
+					   "",
+					   TRUE,
+					   KEY_ALL_ACCESS,
+					   NULL,
+					   &hKey,
+					   (LPDWORD)&dwData) != ERROR_SUCCESS)
+	{
+		ShowERR("RegCreateKeyEx 2 failed:%d",GetLastError());
+		return FALSE;
+	}
+
+	char lpszAltitude[32] = "370030";
+	strcpy_s(szTempStr,lpszAltitude);
+	if (RegSetValueEx(hKey,"Altitude",0,REG_SZ,(CONST BYTE*)szTempStr,(DWORD)strlen(szTempStr)) != ERROR_SUCCESS)
+	{
+		ShowERR("RegSetValueEx 2 failed:%d",GetLastError());
+		return FALSE;
+	}
+
+	dwData = 0x0;
+	if (RegSetValueEx(hKey,"Flags",0,REG_DWORD,(CONST BYTE*)&dwData,sizeof(DWORD)) != ERROR_SUCCESS)
+	{
+		ShowERR("RegSetValueEx 3 failed:%d",GetLastError());
+		return FALSE;
+	}
+
+	RegFlushKey(hKey);
+	RegCloseKey(hKey);
+
 	bRet = !!StartService(hServiceDDK,NULL,NULL);
 	if (!bRet)
 	{
@@ -194,7 +267,6 @@ void LoadAndRun()
 		ExitProcess(0);
 	}
 
-	/*
 	if (!LoadNTDriver(SYS_NAME,filePath))
 	{
 		DeleteFile(filePath);
@@ -202,10 +274,8 @@ void LoadAndRun()
 		ShowERR("¼ÓÔØÎÄ¼þÊ§°Ü.");
 		ExitProcess(0);
 	}
-	*/
 
 	DeleteFile(filePath);
-	SHDeleteKey(HKEY_LOCAL_MACHINE,ServicesName);
 
 	Init();
 }

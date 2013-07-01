@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HideAv_vs9", "hideav\HideAv_vs9.vcproj", "{389F527E-CE41-4AAE-A83E-2587EEA5C4B8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sys_vs9", "sys\sys_vs9.vcproj", "{D2D18172-768A-41FC-AFDD-83C5EDCD8CAB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{389F527E-CE41-4AAE-A83E-2587EEA5C4B8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{389F527E-CE41-4AAE-A83E-2587EEA5C4B8}.Debug|Win32.Build.0 = Debug|Win32
+		{389F527E-CE41-4AAE-A83E-2587EEA5C4B8}.Release|Win32.ActiveCfg = Release|Win32
+		{389F527E-CE41-4AAE-A83E-2587EEA5C4B8}.Release|Win32.Build.0 = Release|Win32
+		{D2D18172-768A-41FC-AFDD-83C5EDCD8CAB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D2D18172-768A-41FC-AFDD-83C5EDCD8CAB}.Debug|Win32.Build.0 = Debug|Win32
+		{D2D18172-768A-41FC-AFDD-83C5EDCD8CAB}.Release|Win32.ActiveCfg = Release|Win32
+		{D2D18172-768A-41FC-AFDD-83C5EDCD8CAB}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

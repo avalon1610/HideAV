@@ -9,6 +9,7 @@
 
 CAppModule _Module;
 void LoadAndRun();
+BOOL UnLoad();
 
 int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 {
