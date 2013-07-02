@@ -223,7 +223,7 @@ _Leave:
 bool Init()
 {
 	HANDLE port = INVALID_HANDLE_VALUE;
-	HAV_CONTEXT context;
+	//HAV_CONTEXT context;
 	HRESULT hResult = S_OK;
 	context.ShutDown = NULL;
 
@@ -280,3 +280,25 @@ void LoadAndRun()
 	Init();
 }
 
+void OperaterFilter(char data[][MAX_PATH])
+{
+	int i = 0;
+	while (strlen(data[i]))
+	{
+		//ShowERR("%s",data[i]);
+		i++;
+	}
+	SIZE_T size = sizeof(COMMAND_MESSAGE) + MAX_PATH * DIR_COUNT;
+	COMMAND_MESSAGE *msg = (COMMAND_MESSAGE*)new char[size];
+	msg->Command = SetDir;
+	memcpy_s(msg->Data,MAX_PATH*(i+1),data,MAX_PATH*(i+1));
+	DWORD ByteReturned;
+	DWORD result;
+	HRESULT res = FilterSendMessage(context.Port,msg,sizeof(COMMAND_MESSAGE),&result,sizeof(DWORD),&ByteReturned);
+	if (res != S_OK)
+	{
+		ShowERR("²Ù×÷Ê§°Ü.");
+	}
+
+	delete []msg;
+}

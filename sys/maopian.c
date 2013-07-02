@@ -1,13 +1,17 @@
 #include <fltKernel.h>
 #include <dontuse.h>
 #include <suppress.h>
+#include <Ntstrsafe.h>
 #include "../inc/maopian.h"
 
 #pragma prefast(disable:__WARNING_ENCODE_MEMBER_FUNCTION_POINTER, "Not valid for kernel mode drivers")
 
 
+#define MAX_PATH          260
 //PFLT_FILTER filterHandle;
-PWCHAR prefixName = L"2";//要隐藏的文件夹名字
+PCHAR prefixName[128] = {0};//要隐藏的文件夹名字
+
+typedef ULONG DWORD;
 
 typedef struct _HAV_DATA
 {
@@ -112,8 +116,12 @@ NTSTATUS HavMessage(__in PVOID ConnectionCookie,
 {
 	HAV_COMMAND command;
 	NTSTATUS status;
-	PAGED_CODE();
+	char *temp;
+	DWORD strlength;
+	ULONG i = 0;
 
+	PAGED_CODE();
+	
 	UNREFERENCED_PARAMETER(ConnectionCookie);
 	if ((InputBuffer != NULL) && (InputBufferSize >= (FIELD_OFFSET(COMMAND_MESSAGE,Command)+sizeof(HAV_COMMAND))))
 	{
@@ -130,6 +138,36 @@ NTSTATUS HavMessage(__in PVOID ConnectionCookie,
 		switch (command)
 		{
 		case SetDir:
+			if (OutputBufferSize < sizeof(DWORD) || OutputBuffer == NULL)
+			{
+				status = STATUS_INVALID_PARAMETER;
+				break;
+			}
+
+			if (!IS_ALIGNED(OutputBuffer,sizeof(DWORD)))
+			{
+				status = STATUS_DATATYPE_MISALIGNMENT;
+				break;
+			}
+
+			try
+			{
+				temp = InputBuffer;
+				while (*temp)
+				{
+					RtlStringCbLengthA(temp,NTSTRSAFE_MAX_CCH * sizeof(char),&strlength);
+					memcpy_s(prefixName[i],MAX_PATH,temp,strlength);
+					temp = temp + strlength;
+					i++;
+				}
+
+			}
+			except(EXCEPTION_EXECUTE_HANDLER)
+			{
+				return GetExceptionCode();
+			}
+			
+			*ReturnOutputBufferLength = sizeof(DWORD);
 			break;
 		case GetVer:
 			if ((OutputBufferSize < sizeof(HAVVER) || OutputBuffer == NULL))
@@ -249,6 +287,7 @@ __in FLT_POST_OPERATION_FLAGS Flags )
     int modified = 0;
     int removedAllEntries = 1;
     PVOID SafeBuffer;
+	int i = 0;
     
 
 
@@ -296,44 +335,52 @@ __in FLT_POST_OPERATION_FLAGS Flags )
             
         do
         {
+			
             //Byte offset of the next FILE_BOTH_DIR_INFORMATION entry
             nextOffset = currentFileInfo->NextEntryOffset;
 
-           
             nextFileInfo = (PFILE_BOTH_DIR_INFORMATION)((PCHAR)(currentFileInfo) + nextOffset);
-			//	如果要隐藏的文件夹在FILE_BOTH_DIR_INFORMATION的第一个情况 需要特殊处理
-			if((previousFileInfo == currentFileInfo) && 
-				(_wcsnicmp(currentFileInfo->FileName,prefixName,wcslen(prefixName))==0 && 
-				(currentFileInfo->FileNameLength == 2)))
+
+			for (i = 0;i < sizeof(prefixName)/sizeof(PCHAR);++i)
 			{
-				RtlCopyMemory(currentFileInfo->FileName,L".",2);
-				currentFileInfo->FileNameLength =0;
-				FltSetCallbackDataDirty( Data );
-				return FLT_POSTOP_FINISHED_PROCESSING;
+
+				//	如果要隐藏的文件夹在FILE_BOTH_DIR_INFORMATION的第一个情况 需要特殊处理
+				if((previousFileInfo == currentFileInfo) && 
+					(_wcsnicmp(currentFileInfo->FileName,prefixName[i],strlen(prefixName[i]))==0 && 
+					(currentFileInfo->FileNameLength == 2)))
+				{
+					RtlCopyMemory(currentFileInfo->FileName,L".",2);
+					currentFileInfo->FileNameLength =0;
+					FltSetCallbackDataDirty( Data );
+					return FLT_POSTOP_FINISHED_PROCESSING;
+				}
+				
+				//若满足条件，隐藏之 
+				if(_wcsnicmp(currentFileInfo->FileName,prefixName[i],strlen(prefixName[i]))==0 && (currentFileInfo->FileNameLength == 2))
+				{                
+					if( nextOffset == 0 )
+					{
+						previousFileInfo->NextEntryOffset = 0;
+					}
+					else
+					{
+						previousFileInfo->NextEntryOffset = (ULONG)((PCHAR)currentFileInfo - (PCHAR)previousFileInfo) + nextOffset;
+					}
+	                
+					modified = 1;                
+				}
+				else
+				{
+					removedAllEntries = 0;
+					//前驱结点指针后移 
+					previousFileInfo = currentFileInfo;                
+				}
+
 			}
-			
-            //若满足条件，隐藏之 
-            if(_wcsnicmp(currentFileInfo->FileName,prefixName,wcslen(prefixName))==0 && (currentFileInfo->FileNameLength == 2))
-            {                
-                if( nextOffset == 0 )
-                {
-                    previousFileInfo->NextEntryOffset = 0;
-                }
-                else
-                {
-                    previousFileInfo->NextEntryOffset = (ULONG)((PCHAR)currentFileInfo - (PCHAR)previousFileInfo) + nextOffset;
-                }
-                
-                modified = 1;                
-            }
-            else
-            {
-                removedAllEntries = 0;
-                //前驱结点指针后移 
-                previousFileInfo = currentFileInfo;                
-            }
-            //当前指针后移 
-            currentFileInfo = nextFileInfo;
+
+			//当前指针后移 
+			currentFileInfo = nextFileInfo;
+
         } while( nextOffset != 0 );
 
         if( modified )

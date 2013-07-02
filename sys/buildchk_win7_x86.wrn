@@ -1,0 +1,17 @@
+1>warnings in directory e:\projects\hideav\sys
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(268) : warning C4995: 'scanf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(284) : warning C4995: 'sscanf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(290) : warning C4995: '_snscanf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(316) : warning C4995: '_snprintf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(316) : warning C4995: '_vsnprintf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(322) : warning C4995: 'sprintf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(322) : warning C4995: 'vsprintf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(416) : warning C4995: 'swprintf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(417) : warning C4995: 'vswprintf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(428) : warning C4995: '_snwprintf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(428) : warning C4995: '_vsnwprintf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(508) : warning C4995: 'swscanf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(514) : warning C4995: '_snwscanf': name was marked as #pragma deprecated
+1>d:\winddk\7600.16385.1\inc\crt\stdio.h(518) : warning C4995: 'wscanf': name was marked as #pragma deprecated
+1>e:\projects\hideav\sys\maopian.c(349) : warning C4133: 'function' : incompatible types - from 'PCHAR' to 'const wchar_t *'
+1>e:\projects\hideav\sys\maopian.c(359) : warning C4133: 'function' : incompatible types - from 'PCHAR' to 'const wchar_t *'

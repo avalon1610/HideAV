@@ -8,6 +8,26 @@
 #include "aboutdlg.h"
 #include "MainDlg.h"
 
+void OperaterFilter(char [][MAX_PATH]);
+typedef BOOL (WINAPI *_ChangeWindowMessageFilter)(UINT,DWORD);
+BOOL AllowMessageForVista(UINT uMessageID,BOOL bAllow)
+{
+	BOOL bResult = FALSE;
+	HMODULE hUserMod = NULL;
+	// vista and later
+	hUserMod = LoadLibrary("user32.dll");
+	if (NULL == hUserMod)
+		return FALSE;
+	_ChangeWindowMessageFilter pChangeWindowMessageFilter 
+		= (_ChangeWindowMessageFilter)GetProcAddress(hUserMod,"ChangeWindowMessageFilter");
+	if (NULL == pChangeWindowMessageFilter)
+		return FALSE;
+	bResult = pChangeWindowMessageFilter(uMessageID,bAllow ? 1 : 2); // MSGFLT_ADD:1,MSGFLT_REMOVE:2
+	if (NULL != hUserMod)
+		FreeLibrary(hUserMod);
+	return bResult;
+}
+
 BOOL CMainDlg::PreTranslateMessage(MSG* pMsg)
 {
 	return CWindow::IsDialogMessage(pMsg);
@@ -38,6 +58,11 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	UIAddChildWindowContainer(m_hWnd);
 	
 	m_ListBox.Attach(GetDlgItem(IDC_LIST));
+	if (AllowMessageForVista(WM_DROPFILES,TRUE))
+	{
+		AllowMessageForVista(WM_COPYDATA,TRUE);
+		AllowMessageForVista(0x0049,TRUE);
+	}
 	return TRUE;
 }
 
@@ -61,7 +86,17 @@ LRESULT CMainDlg::OnClose(UINT , WPARAM , LPARAM , BOOL& )
 LRESULT CMainDlg::OnHide(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	// TODO: Add validation code 
+	char data[DIR_COUNT][MAX_PATH] = {0};
+	CString temp;
+	int count = m_ListBox.GetCount();
+	for (int i = 0; i < count; i++)
+	{
+		m_ListBox.GetText(i,temp);
+		if (temp)
+			memcpy_s(data[i],MAX_PATH,temp.GetBuffer(0),temp.GetLength());
+	}
 	
+	OperaterFilter(data);
 	return 0;
 }
 

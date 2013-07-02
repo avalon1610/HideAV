@@ -210,6 +210,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\sys\objchk_win7_x86\i386\KernelModule.h"
+				>
+			</File>
+			<File
 				RelativePath=".\MainDlg.h"
 				>
 			</File>
@@ -242,5 +246,9 @@
 		</Filter>
 	</Files>
 	<Globals>
+		<Global
+			Name="RESOURCE_FILE"
+			Value="hideav.rc"
+		/>
 	</Globals>
 </VisualStudioProject>

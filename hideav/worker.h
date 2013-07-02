@@ -26,3 +26,5 @@ typedef struct _HAV_CONTEXT {
 	BOOLEAN CleaningUp;
 	HANDLE ShutDown;
 } HAV_CONTEXT,*PHAV_CONTEXT;
+
+HAV_CONTEXT context;
