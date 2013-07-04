@@ -1,11 +1,13 @@
 TARGETNAME=maopian
 TARGETTYPE=DRIVER
 DRIVERTYPE=FS
+LINKER_FLAGS=/map
 
 
 TARGETLIBS= $(TARGETLIBS) \
-            $(IFSKIT_LIB_PATH)\fltMgr.lib
-
+            $(IFSKIT_LIB_PATH)\fltMgr.lib \
+         
+         
 SOURCES=maopian.c 
 
 

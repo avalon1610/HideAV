@@ -60,6 +60,67 @@ bool WINAPI EnableDebugPriv(LPCTSTR name)
 	return TRUE;
 }
 
+//-------------------------------------------------------------------------------------
+//Description:
+// This function maps a character string to a wide-character (Unicode) string
+//
+//Parameters:
+// lpcszStr: [in] Pointer to the character string to be converted 
+// lpwszStr: [out] Pointer to a buffer that receives the translated string. 
+// dwSize: [in] Size of the buffer
+//
+//Return Values:
+// TRUE: Succeed
+// FALSE: Failed
+// 
+//Example:
+// MByteToWChar(szA,szW,sizeof(szW)/sizeof(szW[0]));
+//---------------------------------------------------------------------------------------
+BOOL MByteToWChar(LPCSTR lpcszStr, LPWSTR lpwszStr, DWORD dwSize)
+{
+	// Get the required size of the buffer that receives the Unicode 
+	// string. 
+	DWORD dwMinSize;
+	dwMinSize = MultiByteToWideChar (CP_ACP, 0, lpcszStr, -1, NULL, 0);
+
+	if(dwSize < dwMinSize)
+	{
+		return FALSE;
+	}
+
+	// Convert headers from ASCII to Unicode.
+	MultiByteToWideChar (CP_ACP, 0, lpcszStr, -1, lpwszStr, dwMinSize);  
+	return TRUE;
+}
+
+//-------------------------------------------------------------------------------------
+//Description:
+// This function maps a wide-character string to a new character string
+//
+//Parameters:
+// lpcwszStr: [in] Pointer to the character string to be converted 
+// lpszStr: [out] Pointer to a buffer that receives the translated string. 
+// dwSize: [in] Size of the buffer
+//
+//Return Values:
+// TRUE: Succeed
+// FALSE: Failed
+// 
+//Example:
+// MByteToWChar(szW,szA,sizeof(szA)/sizeof(szA[0]));
+//---------------------------------------------------------------------------------------
+BOOL WCharToMByte(LPCWSTR lpcwszStr, LPSTR lpszStr, DWORD dwSize)
+{
+	DWORD dwMinSize;
+	dwMinSize = WideCharToMultiByte(CP_ACP,NULL,lpcwszStr,-1,NULL,0,NULL,FALSE);
+	if(dwSize < dwMinSize)
+	{
+		return FALSE;
+	}
+	WideCharToMultiByte(CP_ACP,NULL,lpcwszStr,-1,lpszStr,dwSize,NULL,FALSE);
+	return TRUE;
+}
+
 bool LoadNTDriver(char *DriverName,char *DriverPath)
 {
 	char szDriverImagePath[MAX_PATH] = {0};
@@ -73,18 +134,18 @@ bool LoadNTDriver(char *DriverName,char *DriverPath)
 	if (hServiceMgr == NULL)
 	{
 		ShowERR("OpenSCManager failed:%d",GetLastError());
-		goto _Leave;
+		return FALSE;
 	}
 
 	hServiceDDK = CreateService(hServiceMgr,
 								DriverName,
 								DriverName,		// DisplayName
 								SERVICE_ALL_ACCESS,
-								SERVICE_KERNEL_DRIVER,
+								SERVICE_FILE_SYSTEM_DRIVER,
 								SERVICE_DEMAND_START,
 								SERVICE_ERROR_IGNORE,
 								szDriverImagePath,
-								NULL,NULL,NULL,NULL,NULL);
+								NULL,NULL,"FltMgr",NULL,NULL);
 	DWORD dwRtn;
 	if (hServiceDDK == NULL)
 	{
@@ -92,21 +153,12 @@ bool LoadNTDriver(char *DriverName,char *DriverPath)
 		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_EXISTS)
 		{
 			ShowERR("CreateService Failed:%d.",dwRtn);
-			goto _Leave;
-		}
-		else
-		{
-			// already have
-		}
-
-		hServiceDDK = OpenService(hServiceMgr,DriverName,SERVICE_ALL_ACCESS);
-		if (hServiceDDK == NULL)
-		{
-			dwRtn = GetLastError();
-			ShowERR("OpenService Failed:%d",dwRtn);
-			goto _Leave;
+			CloseServiceHandle(hServiceMgr);
+			return FALSE;
 		}
 	}
+	CloseServiceHandle(hServiceDDK);
+	CloseServiceHandle(hServiceMgr);
 
 	char szTempStr[MAX_PATH] = {0};
 	strcpy_s(szTempStr,"SYSTEM\\CurrentControlSet\\Services\\");
@@ -163,7 +215,7 @@ bool LoadNTDriver(char *DriverName,char *DriverPath)
 		return FALSE;
 	}
 
-	char lpszAltitude[32] = "370030";
+	char lpszAltitude[32] = "370000";
 	strcpy_s(szTempStr,lpszAltitude);
 	if (RegSetValueEx(hKey,"Altitude",0,REG_SZ,(CONST BYTE*)szTempStr,(DWORD)strlen(szTempStr)) != ERROR_SUCCESS)
 	{
@@ -181,43 +233,41 @@ bool LoadNTDriver(char *DriverName,char *DriverPath)
 	RegFlushKey(hKey);
 	RegCloseKey(hKey);
 
-	bRet = !!StartService(hServiceDDK,NULL,NULL);
-	if (!bRet)
-	{
-		DWORD dwRtn = GetLastError();
-		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_ALREADY_RUNNING)
-		{
-			bRet = false;
-			ShowERR("StartService() Failed:%d",dwRtn);
-			goto _Leave;
-		}
-		else
-		{
-			if (dwRtn == ERROR_IO_PENDING)
-			{
-				bRet = false;
-				ShowERR("StartService() Failed ERROR_IO_PENDING");
-				goto _Leave;
-			}
-			else
-			{
-				bRet = true;
-				goto _Leave;
-			}
-		}
-	}
-_Leave:
+	return TRUE;
+}
 
-	if (hServiceDDK)
+BOOL StartDriver(const char *lpszDriverName)
+{
+	if (lpszDriverName == NULL)
+		return FALSE;
+
+	SC_HANDLE scManager = OpenSCManager(NULL,NULL,SC_MANAGER_ALL_ACCESS);
+	if (NULL == scManager)
 	{
-		CloseServiceHandle(hServiceDDK);
-	}
-	if (hServiceMgr)
-	{
-		CloseServiceHandle(hServiceMgr);
+		return FALSE;
 	}
 
-	return bRet;
+	SC_HANDLE scService = OpenService(scManager,lpszDriverName,SERVICE_ALL_ACCESS);
+	if (NULL == scService)
+	{
+		CloseServiceHandle(scManager);
+		return FALSE;
+	}
+
+	
+	if (!StartService(scService,NULL,NULL))
+	{
+		CloseServiceHandle(scService);
+		CloseServiceHandle(scManager);
+		if (GetLastError() == ERROR_SERVICE_ALREADY_RUNNING)
+			return TRUE;
+		ShowERR("StartService error:%d",GetLastError());
+		return FALSE;
+	}
+
+	CloseServiceHandle(scManager);
+	CloseServiceHandle(scService);
+	return TRUE;
 }
 
 bool Init()
@@ -244,14 +294,14 @@ bool Init()
 void LoadAndRun()
 {
 	char filePath[MAX_PATH] = {0};
-	char LoadDriverPath[MAX_PATH] = {0};
-	char ServicesName[MAX_PATH] = {0};
-	GetCurrentDirectory(sizeof(filePath),filePath);
+	//char LoadDriverPath[MAX_PATH] = {0};
+	//char ServicesName[MAX_PATH] = {0};
+	GetSystemDirectory(filePath,sizeof(filePath));
 	strcat_s(filePath,"\\");
 	strcat_s(filePath,SYS_NAME);
 	strcat_s(filePath,".sys");
-	sprintf_s(ServicesName,MAX_PATH,"SYSTEM\\CurrentControlSet\\Services\\%s",SYS_NAME);
-	SHDeleteKey(HKEY_LOCAL_MACHINE,ServicesName);
+	//sprintf_s(ServicesName,MAX_PATH,"SYSTEM\\CurrentControlSet\\Services\\%s",SYS_NAME);
+	//SHDeleteKey(HKEY_LOCAL_MACHINE,ServicesName);
 
 	ExtractSysFile(filePath,KernelModule,sizeof(KernelModule));
 	if (GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES)
@@ -260,7 +310,7 @@ void LoadAndRun()
 		ExitProcess(0);
 	}
 
-	sprintf_s(LoadDriverPath,MAX_PATH,"\\??\\%s",filePath);
+	//sprintf_s(LoadDriverPath,MAX_PATH,"\\??\\%s",filePath);
 	if (!EnableDebugPriv(SE_LOAD_DRIVER_NAME))
 	{
 		ShowERR("权限不够.");
@@ -270,8 +320,15 @@ void LoadAndRun()
 	if (!LoadNTDriver(SYS_NAME,filePath))
 	{
 		DeleteFile(filePath);
-		SHDeleteKey(HKEY_LOCAL_MACHINE,ServicesName);
-		ShowERR("加载文件失败.");
+		//SHDeleteKey(HKEY_LOCAL_MACHINE,ServicesName);
+		ExitProcess(0);
+	}
+
+	if (!StartDriver(SYS_NAME))
+	{
+		ShowERR("启动失败.");
+		DeleteFile(filePath);
+		//SHDeleteKey(HKEY_LOCAL_MACHINE,ServicesName);
 		ExitProcess(0);
 	}
 

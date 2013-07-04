@@ -6,7 +6,6 @@
 
 #pragma prefast(disable:__WARNING_ENCODE_MEMBER_FUNCTION_POINTER, "Not valid for kernel mode drivers")
 
-
 #define MAX_PATH          260
 //PFLT_FILTER filterHandle;
 PCHAR prefixName[128] = {0};//要隐藏的文件夹名字
@@ -155,8 +154,9 @@ NTSTATUS HavMessage(__in PVOID ConnectionCookie,
 				temp = InputBuffer;
 				while (*temp)
 				{
-					RtlStringCbLengthA(temp,NTSTRSAFE_MAX_CCH * sizeof(char),&strlength);
-					memcpy_s(prefixName[i],MAX_PATH,temp,strlength);
+					//RtlStringCbLengthA(temp,NTSTRSAFE_MAX_CCH * sizeof(char),&strlength);
+					strlength = strlen(temp);
+					RtlCopyMemory(prefixName[i],temp,strlength);
 					temp = temp + strlength;
 					i++;
 				}
@@ -214,7 +214,7 @@ NTSTATUS HavMessage(__in PVOID ConnectionCookie,
 
 NTSTATUS DriverEntry ( __in PDRIVER_OBJECT DriverObject, __in PUNICODE_STRING RegistryPath )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
 	UNICODE_STRING uniString;
 	PSECURITY_DESCRIPTOR sd;
 	OBJECT_ATTRIBUTES oa;
@@ -259,8 +259,6 @@ NTSTATUS DriverEntry ( __in PDRIVER_OBJECT DriverObject, __in PUNICODE_STRING Re
 		return status;
 	}
 
-
-
     return status;
 }
 
@@ -272,6 +270,7 @@ NTSTATUS PtUnload ( __in FLT_FILTER_UNLOAD_FLAGS Flags )
 	FltCloseCommunicationPort(HavData.ServerPort);
 
     FltUnregisterFilter( HavData.Filter );
+	KdPrint("!!! maopian.sys --- Unloaded!.");
 
     return STATUS_SUCCESS;
 }
@@ -288,8 +287,8 @@ __in FLT_POST_OPERATION_FLAGS Flags )
     int removedAllEntries = 1;
     PVOID SafeBuffer;
 	int i = 0;
+	size_t size = 0;
     
-
 
     PFILE_BOTH_DIR_INFORMATION currentFileInfo = 0;
     PFILE_BOTH_DIR_INFORMATION nextFileInfo = 0;
@@ -300,6 +299,9 @@ __in FLT_POST_OPERATION_FLAGS Flags )
     
     UNREFERENCED_PARAMETER( FltObjects );
     UNREFERENCED_PARAMETER( CompletionContext );
+
+	if (prefixName[0] == NULL)
+		return FLT_POSTOP_FINISHED_PROCESSING;
 
     if( FlagOn( Flags, FLTFL_POST_OPERATION_DRAINING ) )
     {
@@ -345,9 +347,11 @@ __in FLT_POST_OPERATION_FLAGS Flags )
 			{
 
 				//	如果要隐藏的文件夹在FILE_BOTH_DIR_INFORMATION的第一个情况 需要特殊处理
+				//RtlStringCbLengthA(prefixName[i],NTSTRSAFE_MAX_CCH * sizeof(char),&size);
+				size = strlen(prefixName[i]);
 				if((previousFileInfo == currentFileInfo) && 
-					(_wcsnicmp(currentFileInfo->FileName,prefixName[i],strlen(prefixName[i]))==0 && 
-					(currentFileInfo->FileNameLength == 2)))
+					(_wcsnicmp(currentFileInfo->FileName,prefixName[i],size))==0 && 
+					(currentFileInfo->FileNameLength == 2))
 				{
 					RtlCopyMemory(currentFileInfo->FileName,L".",2);
 					currentFileInfo->FileNameLength =0;
@@ -356,7 +360,7 @@ __in FLT_POST_OPERATION_FLAGS Flags )
 				}
 				
 				//若满足条件，隐藏之 
-				if(_wcsnicmp(currentFileInfo->FileName,prefixName[i],strlen(prefixName[i]))==0 && (currentFileInfo->FileNameLength == 2))
+				if(_wcsnicmp(currentFileInfo->FileName,prefixName[i],size) == 0 && (currentFileInfo->FileNameLength == 2))
 				{                
 					if( nextOffset == 0 )
 					{
